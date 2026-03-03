@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: buildseal-api
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: RPC_URL
+        value: https://sepolia.base.org
+      - key: PRIVATE_KEY
+        sync: false
