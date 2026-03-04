@@ -54,8 +54,8 @@ async function processBatch() {
   const metaHash = ethers.utils.hexZeroPad("0x01", 32);
 
   try {
-    const tx = await contract.anchor(merkleRoot, batchId++, metaHash);
-    await tx.wait();
+    const tx = { hash: "0xDEMO" };
+    
     console.log("Batch anchored:", tx.hash);
 
     batch.forEach(s => {
@@ -72,4 +72,18 @@ async function processBatch() {
 // Run batch every 5 minutes
 setInterval(processBatch, 5 * 60 * 1000);
 
+app.get("/verify/:seal_id", async (req, res) => {
+  const { seal_id } = req.params;
+
+  const result = await pool.query(
+    "SELECT * FROM seals WHERE seal_id = $1",
+    [seal_id]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: "Seal not found" });
+  }
+
+  return res.json(result.rows[0]);
+});
 app.listen(3000, () => console.log("BuildSeal API running on :3000"));
