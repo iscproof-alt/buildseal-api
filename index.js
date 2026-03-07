@@ -1,31 +1,47 @@
 const express = require("express");
+const { Pool } = require("pg");
 
 const app = express();
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
 app.get("/", (req, res) => {
-  res.json({ status: "ok", service: "buildseal-api" });
+  res.json({ status: "ok", db: !!process.env.DATABASE_URL });
 });
 
 app.get("/health", (req, res) => {
   res.json({ status: "healthy" });
 });
 
-app.get("/release/:id", (req, res) => {
+app.get("/release/:id", async (req, res) => {
   const id = req.params.id;
 
-  res.send(`
-    <html>
-      <head>
-        <title>BuildSeal Verify</title>
-      </head>
-      <body style="font-family: Arial; background:#0b0f14; color:#e6edf3; padding:40px;">
-        <h1 style="color:#22c55e;">BuildSeal Verified</h1>
-        <p>Seal ID: ${id}</p>
-        <p>Status: OK</p>
-        <p>Mode: demo (DB disabled)</p>
-      </body>
-    </html>
-  `);
+  try {
+    const r = await pool.query(
+      "select id, status, verify_url from releases where id=$1",
+      [id]
+    );
+
+    if (r.rows.length === 0) {
+      return res.send("not found");
+    }
+
+    const row = r.rows[0];
+
+    res.send(
+      "<h1>BuildSeal Verified</h1>" +
+      "<p>ID: " + row.id + "</p>" +
+      "<p>Status: " + row.status + "</p>" +
+      "<p>URL: " + row.verify_url + "</p>"
+    );
+  } catch (e) {
+    res.send("db error");
+  }
 });
 
-app.listen(3000, () => console.log("BuildSeal API running on :3000"));
+app.listen(3000, () =>
+  console.log("BuildSeal API with DB running on 3000")
+);
