@@ -6,6 +6,10 @@ app.get("/", (req, res) => {
   res.json({ status: "ok", service: "buildseal-api" });
 });
 
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy" });
+});
+
 app.get("/release/:id", (req, res) => {
   const id = req.params.id;
 
