@@ -53,4 +53,16 @@ app.get("/seal/:seal_id", async (req, res) => {
   });
 });
 
+app.post("/seal/:seal_id/pack", async (req, res) => {
+  const { seal_id } = req.params;
+  const { pack_hash, evidence_pack_url } = req.body;
+  const { rows } = await pool.query("SELECT * FROM seals WHERE seal_id=$1", [seal_id]);
+  if (!rows.length) return res.status(404).json({ error: "not found" });
+  await pool.query(
+    "UPDATE seals SET status='verified', pack_hash=$1, evidence_pack_url=$2 WHERE seal_id=$3",
+    [pack_hash, evidence_pack_url, seal_id]
+  );
+  res.json({ seal_id, status: "verified" });
+});
+
 app.listen(3000, () => console.log("BuildSeal API running on :3000"));
