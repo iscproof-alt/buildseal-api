@@ -17,6 +17,8 @@ async function initDb() {
       verify_url TEXT
     )
   `);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS pack_hash TEXT`);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS evidence_pack_url TEXT`);
   console.log("DB ready");
 }
 initDb();
