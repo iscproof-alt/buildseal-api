@@ -1,10 +1,12 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const { ethers } = require("ethers");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const CONTRACT = "0x0a93c4cF810F68e8FBeEa63ddb36d0f06da96bFE";
