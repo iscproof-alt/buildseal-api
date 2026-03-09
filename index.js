@@ -29,6 +29,10 @@ app.use(express.json());
 
 app.get("/health", (req, res) => res.json({ status: "ok", db: true }));
 
+app.get("/download/isc_verify", (req, res) => {
+  res.download(__dirname + "/public/isc_verify", "isc_verify");
+});
+
 app.post("/seal", async (req, res) => {
   const { artifact_hash, repo, commit } = req.body;
   const seal_id = "seal_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
