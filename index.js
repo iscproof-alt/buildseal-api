@@ -68,7 +68,7 @@ app.post("/seal/:seal_id/pack", async (req, res) => {
     "UPDATE seals SET status='verified', pack_hash=$1, evidence_pack_url=$2 WHERE seal_id=$3",
     [pack_hash, evidence_pack_url, seal_id]
   );
-  res.json({ seal_id, status: "verified" });
+  res.json({ seal_id, status: "unmodified", integrity: "Artifact has not changed since sealing", provenance: "Not verified — source origin is outside this proof" });
 });
 
 app.listen(3000, () => console.log("BuildSeal API running on :3000"));
