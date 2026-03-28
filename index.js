@@ -91,9 +91,9 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
       [seal_id, '', 'web-upload', 'direct', verify_url]
     );
 
-    const packDir = '/home/hakan/Isc-Core';
-    const keyFile = '/home/hakan/Isc-Core/isc_pack_v4/test_key.json';
-    const v5bin = '/home/hakan/Isc-Core/isc_pack_v5/target/release/isc_pack_v5';
+    const packDir = '/app';
+    const keyFile = '/app/isc_pack_v4/test_key.json';
+    const v5bin = '/app/isc_pack_v5/target/release/isc_pack_v5';
 
     const packOut = execSync(
       `cd ${packDir} && ${v5bin} ${file.path} iscproof/document ${seal_id} --key ${keyFile}`,
@@ -103,7 +103,7 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
     const packPath = `${packDir}/${seal_id}_v5_pack.json`;
 
     const verifyOut = execSync(
-      `python3 /home/hakan/Isc-Core/tools/verify_pack.py ${packPath}`,
+      `python3 /app/tools/verify_pack.py ${packPath}`,
       { encoding: 'utf8' }
     );
 
@@ -115,7 +115,7 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
       [verdict, packPath, verifyOut, verifyJson.hash || '', seal_id]
     );
 
-    const pdfCmd = `cd /home/hakan/ali && source venv/bin/activate && python3 /home/hakan/Isc-Core/tools/generate_proof_pdf.py ${packPath}`;
+    const pdfCmd = `cd /home/hakan/ali && source venv/bin/activate && python3 /app/tools/generate_proof_pdf.py ${packPath}`;
     try { execSync(`bash -c "${pdfCmd}"`, { encoding: 'utf8' }); } catch(e) {}
     res.json({ seal_id, verdict, verify_url, verify_output: verifyJson });
 

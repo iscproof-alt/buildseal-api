@@ -1,0 +1,21 @@
+{
+  "claims": [],
+  "content_hash": {
+    "alg": "sha256",
+    "digest": "d544abcc2f6c1e1ac88635a29c815b4a4de65fdf327d536b1b028702de921b84"
+  },
+  "content_id": "readme-v1",
+  "parent": "",
+  "profile": "iscproof/document",
+  "root": "bf9584f719c881f168f29d504fc9a44b1350babaf7410e09873c99fcb016714f",
+  "sealed_at": "2026-03-27T20:47:31Z",
+  "signatures": [
+    {
+      "alg": "ed25519",
+      "fingerprint": "f56f73a4f1203251",
+      "public_key": "81a58d81b5e9726928ccc3ebe4a281b3ee3c7e69280c867e196e0b9618897508",
+      "signature": "9c395c5a702adf9a61964166e6db759333f92160f83232d33702bbca5d60f79f9cc963f3a83e1d7b95972fdb242bbea13b3a9cdf3bd9456512f31d974a750605"
+    }
+  ],
+  "version": 5
+}
