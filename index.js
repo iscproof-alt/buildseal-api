@@ -26,7 +26,7 @@ initDb();
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(require('express').static('public'));
+app.use(require('express').static(require('path').join(__dirname, 'public')));
 
 app.get("/health", (req, res) => res.json({ status: "ok", db: true }));
 
