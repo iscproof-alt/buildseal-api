@@ -35,15 +35,61 @@ app.get("/download/isc_verify", (req, res) => {
 });
 
 app.post("/seal", async (req, res) => {
-  const { artifact_hash, repo, commit } = req.body;
+  const { artifact_hash, repo, commit, filename } = req.body;
+  if (!artifact_hash) return res.status(400).json({ error: "artifact_hash required" });
+
   const seal_id = "seal_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-  const verify_url = "https://verify.buildseal.io/release/" + seal_id;
+  const verify_url = "https://buildseal-api-1.onrender.com/seal/" + seal_id;
+  const sealed_at = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+
   await pool.query(
-    "INSERT INTO seals (seal_id, artifact_hash, repo, commit_hash, verify_url) VALUES ($1,$2,$3,$4,$5)",
-    [seal_id, artifact_hash, repo, commit, verify_url]
+    "INSERT INTO seals (seal_id, artifact_hash, repo, commit_hash, verify_url, status) VALUES ($1,$2,$3,$4,$5,'processing')",
+    [seal_id, artifact_hash, repo || 'web', commit || 'direct', verify_url]
   );
-  res.json({ seal_id, status: "queued", verify_url });
+
+  const fs = require('fs');
+  const path = require('path');
+  const { execSync } = require('child_process');
+  const tmpContent = path.join('/tmp', seal_id + '.content');
+  fs.writeFileSync(tmpContent, artifact_hash);
+
+  const binPath = __dirname + '/isc_pack_v5_bin';
+  const keyPath = __dirname + '/buildseal.key.json';
+
+  let packData = null;
+  let status = 'completed';
+
+  try {
+    execSync(
+      `cd /tmp && ${binPath} ${tmpContent} seal ${seal_id} --key ${keyPath} --sealed-at "${sealed_at}"`,
+      { encoding: 'utf8' }
+    );
+    const packPath = `/tmp/${seal_id}_v5_pack.json`;
+    packData = JSON.parse(fs.readFileSync(packPath, 'utf8'));
+    await pool.query(
+      "UPDATE seals SET status='completed', pack_hash=$1 WHERE seal_id=$2",
+      [packData.root, seal_id]
+    );
+    try { fs.unlinkSync(packPath); } catch(_) {}
+  } catch(e) {
+    status = 'failed';
+    console.error('isc_pack_v5 error:', e.message);
+    await pool.query("UPDATE seals SET status='failed' WHERE seal_id=$1", [seal_id]);
+  }
+
+  try { fs.unlinkSync(tmpContent); } catch(_) {}
+
+  res.json({
+    seal_id,
+    status,
+    verify_url,
+    timestamp: sealed_at,
+    root: packData?.root || null,
+    content_hash: packData?.content_hash || null,
+    tsa: null
+  });
 });
+
 
 app.get("/seal/:seal_id", async (req, res) => {
   const { rows } = await pool.query("SELECT * FROM seals WHERE seal_id=$1", [req.params.seal_id]);
