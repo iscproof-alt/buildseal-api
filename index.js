@@ -54,9 +54,11 @@ app.post("/seal", async (req, res) => {
   fs.writeFileSync(tmpContent, artifact_hash);
 
   const binPath = __dirname + '/isc_pack_v5_bin';
-  // Key: env var'dan oku, yoksa local dosyaya bak
+  // Key: Render secret file > env var > local
   let keyPath;
-  if (process.env.BUILDSEAL_KEY_JSON) {
+  if (require('fs').existsSync('/etc/secrets/buildseal.key.json')) {
+    keyPath = '/etc/secrets/buildseal.key.json';
+  } else if (process.env.BUILDSEAL_KEY_JSON) {
     const fs = require('fs');
     keyPath = '/tmp/buildseal_runtime.key.json';
     fs.writeFileSync(keyPath, process.env.BUILDSEAL_KEY_JSON);
