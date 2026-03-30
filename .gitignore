@@ -1,3 +1,5 @@
 isc_pack_v5/target/
 isc_pack_v5/*_v5_pack.json
 buildseal.key.json
+isc_pack_v5_bin
+buildseal*.key.json
