@@ -54,7 +54,15 @@ app.post("/seal", async (req, res) => {
   fs.writeFileSync(tmpContent, artifact_hash);
 
   const binPath = __dirname + '/isc_pack_v5_bin';
-  const keyPath = __dirname + '/buildseal.key.json';
+  // Key: env var'dan oku, yoksa local dosyaya bak
+  let keyPath;
+  if (process.env.BUILDSEAL_KEY_JSON) {
+    const fs = require('fs');
+    keyPath = '/tmp/buildseal_runtime.key.json';
+    fs.writeFileSync(keyPath, process.env.BUILDSEAL_KEY_JSON);
+  } else {
+    keyPath = __dirname + '/buildseal_new.key.json';
+  }
 
   let packData = null;
   let status = 'completed';

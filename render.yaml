@@ -2,10 +2,14 @@ services:
   - type: web
     name: buildseal-api
     env: node
-    buildCommand: npm install
+    buildCommand: |
+      curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+      export PATH="$HOME/.cargo/bin:$PATH"
+      cd isc_pack_v5 && cargo build --release && cp target/release/isc_pack_v5 ../isc_pack_v5_bin && cd ..
+      npm install
     startCommand: node index.js
     envVars:
-      - key: RPC_URL
-        value: https://sepolia.base.org
-      - key: PRIVATE_KEY
+      - key: DATABASE_URL
+        sync: false
+      - key: BUILDSEAL_KEY_JSON
         sync: false
