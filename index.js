@@ -187,4 +187,4 @@ app.get('/verify/:id', async (req, res) => {
   res.json({ ...r, verdict: r.verdict || 'PENDING' });
 });
 
-app.listen(3000, () => console.log("BuildSeal API running on :3000"));
+app.listen(process.env.PORT || 3000, () => console.log("BuildSeal API running on :3000"));
