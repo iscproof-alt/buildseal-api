@@ -149,7 +149,8 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
     );
 
     const packDir = '/app';
-    const keyFile = '/etc/secrets/signing_key.json';
+    const keyFile = '/tmp/signing_key.json';
+    require('fs').writeFileSync(keyFile, process.env.BUILDSEAL_KEY_JSON || '{}');
     const v5bin = '/app/isc_pack_v5_bin';
 
     const packOut = execSync(
