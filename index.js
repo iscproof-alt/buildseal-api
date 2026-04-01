@@ -168,7 +168,7 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
     let verifyOut = '';
     try {
       verifyOut = execSync(`/app/isc_pack_v5_bin --verify ${packPath}`, { encoding: 'utf8' });
-      verdict = verifyOut.includes('PACK VERIFIED') ? 'VALID' : 'INVALID';
+      verdict = verifyOut.includes('PACK VERIFIED') || verifyOut.trimStart().startsWith('VALID') ? 'VALID' : 'INVALID';
     } catch(verifyErr) {
       verifyOut = verifyErr.stderr || verifyErr.message || 'VERIFICATION FAILED';
       verdict = 'INVALID';
