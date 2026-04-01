@@ -159,13 +159,16 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
 
     const packPath = `${packDir}/${seal_id}_v5_pack.json`;
 
-    const verifyOut = execSync(
-      `python3 /app/tools/verify_pack.py ${packPath}`,
-      { encoding: 'utf8' }
-    );
-
-    const verifyJson = JSON.parse(verifyOut);
-    const verdict = verifyJson.verdict || 'INVALID';
+    let verdict = 'INVALID';
+    let verifyOut = '';
+    try {
+      verifyOut = execSync(`/app/isc_pack_v5_bin --verify ${packPath}`, { encoding: 'utf8' });
+      verdict = verifyOut.includes('PACK VERIFIED') ? 'VALID' : 'INVALID';
+    } catch(verifyErr) {
+      verifyOut = verifyErr.stderr || verifyErr.message || 'VERIFICATION FAILED';
+      verdict = 'INVALID';
+    }
+    const verifyJson = { verdict, output: verifyOut };
 
     await pool.query(
       "UPDATE seals SET status='DONE', verdict=$1, pack_path=$2, verify_output_json=$3, verified_at=NOW(), artifact_hash=$4 WHERE seal_id=$5",
