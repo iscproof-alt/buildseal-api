@@ -39,7 +39,7 @@ app.post("/seal", async (req, res) => {
   if (!artifact_hash) return res.status(400).json({ error: "artifact_hash required" });
 
   const seal_id = "seal_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-  const verify_url = "https://buildseal-api-1.onrender.com/seal/" + seal_id;
+  const verify_url = (process.env.BASE_URL || "https://buildseal-api-production-3ca5.up.railway.app") + "/seal/" + seal_id;
   const sealed_at = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
 
   await pool.query(
