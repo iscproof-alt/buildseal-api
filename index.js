@@ -19,6 +19,10 @@ async function initDb() {
   `);
   await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS pack_hash TEXT`);
   await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS evidence_pack_url TEXT`);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS verdict TEXT DEFAULT 'PENDING'`);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS pack_path TEXT`);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS verify_output_json TEXT`);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`);
   console.log("DB ready");
 }
 initDb();
