@@ -149,8 +149,8 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
     );
 
     const packDir = '/app';
-    const keyFile = '/app/isc_pack_v4/test_key.json';
-    const v5bin = '/app/isc_pack_v5/target/release/isc_pack_v5';
+    const keyFile = '/etc/secrets/signing_key.json';
+    const v5bin = '/app/isc_pack_v5_bin';
 
     const packOut = execSync(
       `cd ${packDir} && ${v5bin} ${file.path} iscproof/document ${seal_id} --key ${keyFile}`,
