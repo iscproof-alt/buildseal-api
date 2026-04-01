@@ -112,7 +112,8 @@ app.get("/seal/:seal_id", async (req, res) => {
     commit: r.commit_hash,
     status: r.status,
     created_at: r.created_at,
-    verify_url: r.verify_url
+    verify_url: r.verify_url,
+    root: r.pack_hash || null
   });
 });
 
