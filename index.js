@@ -245,7 +245,12 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
 
     const pdfCmd = `cd /home/hakan/ali && source venv/bin/activate && python3 /app/tools/generate_proof_pdf.py ${packPath}`;
     try { execSync(`bash -c "${pdfCmd}"`, { encoding: 'utf8' }); } catch(e) {}
-    res.json({ seal_id, verdict, verify_url, verify_output: verifyJson });
+    const rootMatch = verifyOut.match(/root:\s+([a-f0-9]+)/);
+    const sealedAtMatch = verifyOut.match(/sealed_at:\s+(\S+)/);
+    const root_hash = rootMatch ? rootMatch[1] : '';
+    const sealed_at = sealedAtMatch ? sealedAtMatch[1] : '';
+    const tsa = tsaResult.present ? { present: true, provider: tsaResult.provider, time: tsaResult.time } : { present: false };
+    res.json({ seal_id, verdict, verify_url, root_hash, sealed_at, tsa, verify_output: verifyJson });
 
   } catch(e) {
     res.status(500).json({ error: e.message });
