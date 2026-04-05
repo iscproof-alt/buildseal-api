@@ -222,6 +222,12 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
     );
 
     const packPath = `${packDir}/${seal_id}_v5_pack.json`;
+    let tsaResult = { present: false, provider: 'freetsa' };
+    try {
+      const packJsonTsa = JSON.parse(require('fs').readFileSync(`${packDir}/${seal_id}_v5_pack.json`, 'utf8'));
+      const rootHash = packJsonTsa.root || '';
+      if (rootHash) tsaResult = await requestTSA(rootHash);
+    } catch(e) { tsaResult.error = e.message; }
 
     let verdict = 'INVALID';
     let verifyOut = '';
