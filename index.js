@@ -6,46 +6,39 @@ const crypto = require('crypto');
 async function requestTSA(rootHex) {
   return new Promise((resolve) => {
     try {
-      // RFC 3161 TSA request - hash the root
-      const rootBytes = Buffer.from(rootHex, 'hex');
-      const sha256Hash = crypto.createHash('sha256').update(rootBytes).digest();
+      const { execSync } = require('child_process');
+      const fs = require('fs');
+      const tmpDir = '/tmp';
+      const hashFile = `${tmpDir}/tsa_hash_${Date.now()}.bin`;
+      const reqFile = `${tmpDir}/tsa_req_${Date.now()}.tsq`;
+      const respFile = `${tmpDir}/tsa_resp_${Date.now()}.tsr`;
       
-      // Minimal DER-encoded TSA request
-      // OID for SHA-256: 2.16.840.1.101.3.4.2.1
-      const shaOid = Buffer.from('3031300d060960864801650304020105000420', 'hex');
-      const tsaReq = Buffer.concat([shaOid, sha256Hash]);
+      // Write root hash as binary
+      fs.writeFileSync(hashFile, Buffer.from(rootHex, 'hex'));
       
-      const options = {
-        hostname: 'freetsa.org',
-        path: '/tsr',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/timestamp-query',
-          'Content-Length': tsaReq.length
-        },
-        timeout: 8000
-      };
+      // Create TSA request with openssl
+      execSync(`openssl ts -query -data ${hashFile} -sha256 -cert -no_nonce -out ${reqFile}`, { timeout: 5000 });
       
-      const req = https.request(options, (res) => {
-        const chunks = [];
-        res.on('data', chunk => chunks.push(chunk));
-        res.on('end', () => {
-          const token = Buffer.concat(chunks).toString('base64');
-          resolve({
-            present: true,
-            provider: 'freetsa',
-            time: new Date().toISOString(),
-            token_b64: token.slice(0, 64)
-          });
-        });
+      // Send to FreeTSA
+      execSync(`curl -s -S -H "Content-Type: application/timestamp-query" --data-binary @${reqFile} https://freetsa.org/tsr -o ${respFile}`, { timeout: 10000 });
+      
+      // Parse response time with openssl
+      const tsInfo = execSync(`openssl ts -reply -in ${respFile} -text 2>&1`, { encoding: 'utf8', timeout: 5000 });
+      
+      // Extract time
+      const timeMatch = tsInfo.match(/Time stamp: (.+)/);
+      const tsaTime = timeMatch ? new Date(timeMatch[1]).toISOString() : new Date().toISOString();
+      
+      // Cleanup
+      try { fs.unlinkSync(hashFile); fs.unlinkSync(reqFile); fs.unlinkSync(respFile); } catch(_) {}
+      
+      resolve({
+        present: true,
+        provider: 'freetsa',
+        time: tsaTime
       });
-      
-      req.on('error', () => resolve({ present: false, provider: 'freetsa', error: 'request_failed' }));
-      req.on('timeout', () => { req.destroy(); resolve({ present: false, provider: 'freetsa', error: 'timeout' }); });
-      req.write(tsaReq);
-      req.end();
     } catch(e) {
-      resolve({ present: false, provider: 'freetsa', error: e.message });
+      resolve({ present: false, provider: 'freetsa', error: e.message.slice(0, 100) });
     }
   });
 }
