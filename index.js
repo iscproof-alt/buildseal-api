@@ -173,11 +173,16 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
       verifyOut = verifyErr.stderr || verifyErr.message || 'VERIFICATION FAILED';
       verdict = 'INVALID';
     }
-    const verifyJson = { verdict, output: verifyOut };
 
+    let artifactHash = '';
+    try {
+      const packJson = JSON.parse(require('fs').readFileSync(packPath, 'utf8'));
+      artifactHash = packJson.content_hash && packJson.content_hash.digest ? packJson.content_hash.digest : '';
+    } catch(e) {}
+    const verifyJson = { verdict, output: verifyOut };
     await pool.query(
       "UPDATE seals SET status='DONE', verdict=$1, pack_path=$2, verify_output_json=$3, verified_at=NOW(), artifact_hash=$4 WHERE seal_id=$5",
-      [verdict, packPath, verifyOut, verifyJson.hash || '', seal_id]
+      [verdict, packPath, verifyOut, artifactHash, seal_id]
     );
 
     const pdfCmd = `cd /home/hakan/ali && source venv/bin/activate && python3 /app/tools/generate_proof_pdf.py ${packPath}`;
