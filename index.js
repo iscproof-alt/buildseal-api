@@ -1,4 +1,56 @@
 require("dotenv").config();
+
+const https = require('https');
+const crypto = require('crypto');
+
+async function requestTSA(rootHex) {
+  return new Promise((resolve) => {
+    try {
+      // RFC 3161 TSA request - hash the root
+      const rootBytes = Buffer.from(rootHex, 'hex');
+      const sha256Hash = crypto.createHash('sha256').update(rootBytes).digest();
+      
+      // Minimal DER-encoded TSA request
+      // OID for SHA-256: 2.16.840.1.101.3.4.2.1
+      const shaOid = Buffer.from('3031300d060960864801650304020105000420', 'hex');
+      const tsaReq = Buffer.concat([shaOid, sha256Hash]);
+      
+      const options = {
+        hostname: 'freetsa.org',
+        path: '/tsr',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/timestamp-query',
+          'Content-Length': tsaReq.length
+        },
+        timeout: 8000
+      };
+      
+      const req = https.request(options, (res) => {
+        const chunks = [];
+        res.on('data', chunk => chunks.push(chunk));
+        res.on('end', () => {
+          const token = Buffer.concat(chunks).toString('base64');
+          resolve({
+            present: true,
+            provider: 'freetsa',
+            time: new Date().toISOString(),
+            token_b64: token.slice(0, 64)
+          });
+        });
+      });
+      
+      req.on('error', () => resolve({ present: false, provider: 'freetsa', error: 'request_failed' }));
+      req.on('timeout', () => { req.destroy(); resolve({ present: false, provider: 'freetsa', error: 'timeout' }); });
+      req.write(tsaReq);
+      req.end();
+    } catch(e) {
+      resolve({ present: false, provider: 'freetsa', error: e.message });
+    }
+  });
+}
+
+
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
@@ -23,6 +75,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS pack_path TEXT`);
   await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS verify_output_json TEXT`);
   await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE seals ADD COLUMN IF NOT EXISTS tsa_json TEXT`);
   console.log("DB ready");
 }
 initDb();
@@ -79,6 +132,12 @@ app.post("/seal", async (req, res) => {
       { encoding: 'utf8' }
     );
     const packPath = `/tmp/${seal_id}_v5_pack.json`;
+    let tsaResult = { present: false, provider: 'freetsa' };
+    try {
+      const packJson = JSON.parse(require('fs').readFileSync(packPath, 'utf8'));
+      const root = packJson.root || '';
+      if (root) tsaResult = await requestTSA(root);
+    } catch(e) { tsaResult.error = e.message; }
     packData = JSON.parse(fs.readFileSync(packPath, 'utf8'));
     await pool.query(
       "UPDATE seals SET status='completed', pack_hash=$1 WHERE seal_id=$2",
@@ -181,8 +240,8 @@ app.post('/upload-and-seal', upload.single('file'), async (req, res) => {
     } catch(e) {}
     const verifyJson = { verdict, output: verifyOut };
     await pool.query(
-      "UPDATE seals SET status='DONE', verdict=$1, pack_path=$2, verify_output_json=$3, verified_at=NOW(), artifact_hash=$4 WHERE seal_id=$5",
-      [verdict, packPath, verifyOut, artifactHash, seal_id]
+      "UPDATE seals SET status='DONE', verdict=$1, pack_path=$2, verify_output_json=$3, verified_at=NOW(), artifact_hash=$4, tsa_json=$5 WHERE seal_id=$6",
+      [verdict, packPath, verifyOut, artifactHash, JSON.stringify(tsaResult), seal_id]
     );
 
     const pdfCmd = `cd /home/hakan/ali && source venv/bin/activate && python3 /app/tools/generate_proof_pdf.py ${packPath}`;
